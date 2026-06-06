@@ -3,7 +3,7 @@
   "displayName": "AI Commit Message",
   "description": "Generate a git commit message from your changes and fill the native Source Control input, powered by the Claude Code CLI.",
   "version": "0.1.0",
-  "publisher": "caravela",
+  "publisher": "morrisseybr",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
