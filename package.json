@@ -1,0 +1,106 @@
+{
+  "name": "ai-commit-message",
+  "displayName": "AI Commit Message",
+  "description": "Generate a git commit message from your changes and fill the native Source Control input, powered by the Claude Code CLI.",
+  "version": "0.1.0",
+  "publisher": "caravela",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Machine Learning"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiCommitMessage.generate",
+        "title": "AI Commit Message",
+        "category": "AI Commit Message",
+        "icon": "$(sparkle)"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "aiCommitMessage.generate",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "aiCommitMessage.generate"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Commit Message",
+      "properties": {
+        "aiCommitMessage.style": {
+          "type": "string",
+          "enum": ["conventional", "free"],
+          "default": "conventional",
+          "enumDescriptions": [
+            "Conventional Commits: type(scope): imperative subject, optional what/why body.",
+            "Free-form: a concise imperative subject with an optional body."
+          ],
+          "description": "Commit message style."
+        },
+        "aiCommitMessage.language": {
+          "type": "string",
+          "enum": ["en", "pt", "auto"],
+          "default": "en",
+          "enumDescriptions": [
+            "English.",
+            "Portuguese.",
+            "Auto: match the predominant language of recent commits."
+          ],
+          "description": "Language of the generated commit message."
+        },
+        "aiCommitMessage.includeUnstagedFallback": {
+          "type": "boolean",
+          "default": true,
+          "description": "When nothing is staged, fall back to the working-tree diff (and warn discreetly). If disabled, generation requires staged changes."
+        },
+        "aiCommitMessage.claude.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-6",
+          "description": "Claude model alias or full name used to generate the message. A capable model is recommended since this is a one-shot action."
+        },
+        "aiCommitMessage.claude.executablePath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Claude Code CLI binary (e.g. C:\\Users\\you\\.local\\bin\\claude.exe). Leave empty to auto-detect 'claude' on your PATH. Requires Claude Code to be installed and authenticated."
+        },
+        "aiCommitMessage.fastMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Prioritize speed over quality: use a fast model (claude-haiku-4-5-20251001) with extended thinking disabled."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node --import tsx scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.161"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
