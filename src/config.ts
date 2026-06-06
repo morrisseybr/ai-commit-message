@@ -9,16 +9,18 @@ export interface ExtensionConfig {
   claudeModel: string;
   claudeExecutablePath: string;
   fastMode: boolean;
+  disableThinking: boolean;
 }
 
 export function readConfig(): ExtensionConfig {
   const c = vscode.workspace.getConfiguration("aiCommitMessage");
   return {
     style: c.get<CommitStyle>("style", "conventional"),
-    language: c.get<CommitLanguage>("language", "en"),
+    language: c.get<CommitLanguage>("language", "auto"),
     includeUnstagedFallback: c.get<boolean>("includeUnstagedFallback", true),
     claudeModel: c.get<string>("claude.model", "claude-sonnet-4-6"),
     claudeExecutablePath: c.get<string>("claude.executablePath", ""),
     fastMode: c.get<boolean>("fastMode", false),
+    disableThinking: c.get<boolean>("claude.disableThinking", false),
   };
 }

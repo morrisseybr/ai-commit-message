@@ -87,6 +87,7 @@ async function runGenerate(
   const provider = createProvider({
     claudeModel: cfg.claudeModel,
     fastMode: cfg.fastMode,
+    disableThinking: cfg.disableThinking,
     claudeExecutablePath: claudePath,
     onLog: log,
   });
