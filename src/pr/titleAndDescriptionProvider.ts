@@ -89,19 +89,48 @@ const provider: TitleAndDescriptionProvider = {
 };
 
 // Soft-dependency registration: only wires up if the PR extension is present.
+// We don't error when it's absent, but we log every branch so the output
+// channel explains why the "Generate" button did or didn't show up.
 export async function registerPrProvider(
   context: vscode.ExtensionContext
 ): Promise<void> {
   const ext = vscode.extensions.getExtension<PrExtensionApi>(PR_EXTENSION_ID);
   if (!ext) {
+    // Not installed yet — it may be installed/enabled later this session.
+    log(
+      `PR extension '${PR_EXTENSION_ID}' not found; PR title/description disabled. ` +
+        "Watching for it to be installed."
+    );
+    const watcher = vscode.extensions.onDidChange(() => {
+      if (vscode.extensions.getExtension(PR_EXTENSION_ID)) {
+        watcher.dispose();
+        void registerPrProvider(context);
+      }
+    });
+    context.subscriptions.push(watcher);
     return;
   }
+
   try {
+    const version = ext.packageJSON?.version ?? "unknown";
     const api = ext.isActive ? ext.exports : await ext.activate();
+
+    if (!api || typeof api.registerTitleAndDescriptionProvider !== "function") {
+      // Installed but too old to expose the provider API.
+      logError(
+        `PR extension v${version} has no registerTitleAndDescriptionProvider ` +
+          "(update GitHub Pull Requests to a recent version).",
+        new Error("registerTitleAndDescriptionProvider is not a function")
+      );
+      return;
+    }
+
     context.subscriptions.push(
       api.registerTitleAndDescriptionProvider("AI Commit Message", provider)
     );
-    log("registered PR title/description provider");
+    log(
+      `registered PR title/description provider with GitHub Pull Requests v${version}`
+    );
   } catch (err) {
     logError("failed to register PR title/description provider", err);
   }
