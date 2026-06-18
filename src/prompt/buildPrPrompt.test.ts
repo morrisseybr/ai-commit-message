@@ -51,6 +51,72 @@ test("non-auto language does not dump the commit messages into the prompt", () =
   assert.ok(!user.includes("feat: adiciona login"));
 });
 
+test("template present: the prompt mirrors the template instead of summary+bullets", () => {
+  const template = [
+    "## Description",
+    "",
+    "## Checklist",
+    "- [ ] Tests added",
+    "- [ ] Docs updated",
+    "",
+    "## Screenshots",
+  ].join("\n");
+
+  const { system, user } = buildPrPrompt({
+    diff: "diff --git a/a.ts b/a.ts\n+const a = 1;",
+    truncated: false,
+    commitMessages: [],
+    language: "en",
+    template,
+  });
+  const all = `${system}\n${user}`;
+
+  // The template's own structure is handed to the model to mirror.
+  assert.ok(all.includes("## Checklist"));
+  assert.ok(all.includes("## Screenshots"));
+
+  // The model is told to mirror the template, fill only what the diff supports,
+  // leave unfillable sections and checkbox states untouched, and not fabricate.
+  assert.match(system, /template/i);
+  assert.match(system, /do not (invent|fabricate)|never (invent|fabricate)/i);
+  assert.match(system, /checkbox|check ?box/i);
+
+  // The default summary+bullets instruction does not apply in this branch.
+  assert.ok(!/bulleted list/i.test(system));
+});
+
+test("template absent: falls back to the summary + bulleted list, no mirroring", () => {
+  const { system } = buildPrPrompt({
+    diff: "x",
+    truncated: false,
+    commitMessages: [],
+    language: "en",
+  });
+
+  // Walking-skeleton body instruction is retained.
+  assert.match(system, /summary paragraph/i);
+  assert.match(system, /bulleted list/i);
+
+  // No template-mirroring language leaks in when there is no template.
+  assert.ok(!/mirror the template/i.test(system));
+  assert.ok(!/checkbox/i.test(system));
+});
+
+test("whitespace-only template is treated as absent", () => {
+  const { system, user } = buildPrPrompt({
+    diff: "x",
+    truncated: false,
+    commitMessages: [],
+    language: "en",
+    template: "   \n\t  \n",
+  });
+
+  // Blank template must not flip us into the mirroring branch.
+  assert.match(system, /bulleted list/i);
+  assert.ok(!/mirror the template/i.test(system));
+  assert.ok(!user.includes("template to fill in"));
+});
+
 test("truncated diff adds a truncation note", () => {
   const { user } = buildPrPrompt({
     diff: "x",

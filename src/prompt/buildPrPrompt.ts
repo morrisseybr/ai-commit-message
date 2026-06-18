@@ -15,12 +15,19 @@ export interface PrPromptRequest {
   commitMessages: string[];
   /** Target language; "auto" resolves from commitMessages. */
   language: CommitLanguage;
+  /**
+   * The repo's PR template, if the host provided one. When non-empty, the body
+   * mirrors its structure instead of the default summary + bulleted list.
+   */
+  template?: string;
 }
 
 // Builds the system + user prompts for generating a PR title and description in
 // a single call. Unlike the commit prompt, the title is a plain readable
 // sentence (no Conventional Commits style) and the body is Markdown.
 export function buildPrPrompt(req: PrPromptRequest): BuiltPrompt {
+  const hasTemplate = (req.template ?? "").trim().length > 0;
+
   const system = [
     "You generate a title and description for a GitHub pull request from a diff.",
     "",
@@ -28,15 +35,31 @@ export function buildPrPrompt(req: PrPromptRequest): BuiltPrompt {
     PR_SPLIT_MARKER,
     "",
     "Before the marker: the TITLE — a single plain, readable sentence summarizing the change. Do not use Conventional Commits prefixes (no `feat:`/`fix:`), no trailing period, no quotes, no Markdown.",
-    "After the marker: the DESCRIPTION — Markdown is allowed and encouraged. Start with a short summary paragraph, then a bulleted list (`- `) of the notable changes.",
+    bodyRule(hasTemplate),
     "",
     languageRule(req.language),
     "",
     "Do not invent issue numbers, footers, or co-authors that are not present in the diff.",
   ].join("\n");
 
-  const user = buildUser(req);
+  const user = buildUser(req, hasTemplate);
   return { system, user };
+}
+
+// The DESCRIPTION instruction depends on whether the repo provided a PR
+// template. With a template we mirror its structure exactly; without one we
+// fall back to the walking-skeleton summary + bulleted list.
+function bodyRule(hasTemplate: boolean): string {
+  if (hasTemplate) {
+    return [
+      "After the marker: the DESCRIPTION — fill in the pull request template provided below.",
+      "Mirror the template exactly: keep its headings, ordering, and checklist items verbatim.",
+      "Fill in only the sections the diff supports. Leave sections you cannot fill from the diff (e.g. Screenshots, manual testing notes) with their original placeholder or empty.",
+      "Do not change checkbox states — leave every `- [ ]` and `- [x]` exactly as written.",
+      "Do not invent or fabricate content that the diff does not support. Markdown is allowed.",
+    ].join("\n");
+  }
+  return "After the marker: the DESCRIPTION — Markdown is allowed and encouraged. Start with a short summary paragraph, then a bulleted list (`- `) of the notable changes.";
 }
 
 function languageRule(language: CommitLanguage): string {
@@ -51,13 +74,21 @@ function languageRule(language: CommitLanguage): string {
   }
 }
 
-function buildUser(req: PrPromptRequest): string {
+function buildUser(req: PrPromptRequest, hasTemplate: boolean): string {
   const parts: string[] = [];
 
   if (req.language === "auto" && req.commitMessages.length > 0) {
     parts.push(
       "Commit messages on this branch (match their language):",
       ...req.commitMessages.slice(0, 20).map((m) => `- ${m}`),
+      ""
+    );
+  }
+
+  if (hasTemplate) {
+    parts.push(
+      "Pull request template to fill in (mirror its structure exactly):",
+      req.template!.trim(),
       ""
     );
   }

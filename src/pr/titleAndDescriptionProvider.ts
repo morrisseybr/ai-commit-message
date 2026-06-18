@@ -12,8 +12,9 @@ const PR_EXTENSION_ID = "github.vscode-pull-request-github";
 
 // The slice of the host-provided context we consume. We never compute our own
 // diff: `patches`/`commitMessages` come from the host, so changing the base or
-// compare branch re-invokes us with a fresh diff automatically. `issues`,
-// `template`, and `compareBranch` are intentionally ignored in this slice.
+// compare branch re-invokes us with a fresh diff automatically. When `template`
+// is present the generated body mirrors it. `issues` and `compareBranch` are
+// intentionally ignored in this slice.
 interface ProvideContext {
   commitMessages: string[];
   patches: Patches;
@@ -68,6 +69,7 @@ const provider: TitleAndDescriptionProvider = {
         truncated,
         commitMessages: context.commitMessages ?? [],
         language: cfg.language,
+        template: context.template,
         workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
         signal: controller.signal,
       });

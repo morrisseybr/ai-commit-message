@@ -2,7 +2,7 @@
   "name": "ai-commit-message",
   "displayName": "AI Commit Message",
   "description": "Generate a git commit message from your changes and fill the native Source Control input, powered by the Claude Code CLI.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "morrisseybr",
   "license": "MIT",
   "repository": {
