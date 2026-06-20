@@ -1,7 +1,10 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import type { API, Change, GitExtension, Repository } from "../types/git";
-import { truncateDiff } from "../util/truncateDiff";
+
+// Upper bound on how much diff we send. A commit message rarely needs the full
+// patch of a huge change; past this we send the file list + a truncated patch.
+const MAX_DIFF_LINES = 8000;
 
 // Reasons gitService can fail, so the command can show a tailored notification.
 export type GitErrorCode = "no-extension" | "no-repo" | "nothing";
@@ -142,5 +145,17 @@ function describeChange(repo: Repository, change: Change): ChangedFile {
   return {
     path: rel.split(path.sep).join("/"),
     status: STATUS_LABEL[change.status as number] ?? "changed",
+  };
+}
+
+function truncateDiff(raw: string): { diff: string; truncated: boolean } {
+  const lines = raw.split("\n");
+  if (lines.length <= MAX_DIFF_LINES) {
+    return { diff: raw, truncated: false };
+  }
+  const kept = lines.slice(0, MAX_DIFF_LINES).join("\n");
+  return {
+    diff: `${kept}\n\n[diff truncated: ${lines.length - MAX_DIFF_LINES} more lines omitted]`,
+    truncated: true,
   };
 }

@@ -9,7 +9,6 @@ import {
 } from "./git/gitService";
 import type { Repository } from "./types/git";
 import { createProvider } from "./providers/registry";
-import { registerPrProvider } from "./pr/titleAndDescriptionProvider";
 import { ensureClaudePath } from "./util/claudeStatus";
 import { disposeLogger, initLogger, log, logError } from "./util/logger";
 
@@ -36,10 +35,6 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(generate);
-
-  // Soft-dependency: wire up PR title/description generation if the GitHub Pull
-  // Requests extension is present. No-op (and no error) when it is absent.
-  void registerPrProvider(context);
 }
 
 export function deactivate(): void {
